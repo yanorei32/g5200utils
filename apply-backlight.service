@@ -1,0 +1,9 @@
+[Unit]
+Description=Applying backlight brightness for G5200
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/apply-backlight apply
+
+[Install]
+WantedBy=default.target

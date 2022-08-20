@@ -1,0 +1,95 @@
+#!/bin/bash
+
+# inspired by sksat/compose-cd
+#   Copyright (c) 2021-2022 sksat
+
+function apply() {
+	# shellcheck disable=SC1091
+	source /etc/apply-backlight/config
+	echo "$MAINDISP_BRIGHTNESS" > '/sys/class/backlight/backlight@0/brightness'
+	echo "$SUBDISP_BRIGHTNESS" > '/sys/class/backlight/backlight@1/brightness'
+}
+
+function install() {
+	cp ./apply-backlight /usr/bin/apply-backlight
+	cp ./apply-backlight.service /etc/systemd/system/
+	systemctl mask 'systemd-backlight@backlight:backlight@0.service'
+	systemctl mask 'systemd-backlight@backlight:backlight@1.service'
+
+	# validate options
+	local options
+	if ! options=$(getopt --options "m:s:" --longoptions "main-brightness:,sub-brightness:" -- "$@"); then
+		echo "Incorrect options provided"
+		exit 1
+	fi
+	eval set -- "$options"
+
+	local brightness_main
+	local brightness_sub
+
+	while true; do
+		case $1 in
+			--main-brightness | -m)
+				shift
+				brightness_main="$1"
+				;;
+			--sub-brightness | -s)
+				shift
+				brightness_sub="$1"
+				;;
+			--)
+				shift
+				break
+				;;
+		esac
+		shift
+	done
+
+	if [ -z ${brightness_main+x} ]; then read -rp "main brightness> " brightness_main; fi
+	if [ -z ${brightness_sub+x} ]; then read -rp "sub brightness> " brightness_sub; fi
+
+	local max_brightness_main
+	local max_brightness_sub
+	max_brightness_main="$(cat '/sys/class/backlight/backlight@0/max_brightness')"
+	max_brightness_sub="$(cat '/sys/class/backlight/backlight@1/max_brightness')"
+
+	mkdir -p /etc/apply-backlight
+
+	tee /etc/apply-backlight/config <<EOS
+# Main display brightness <= $max_brightness_main
+MAINDISP_BRIGHTNESS=$brightness_main
+# Sub display brightness <= $max_brightness_sub
+SUBDISP_BRIGHTNESS=$brightness_sub
+EOS
+
+	systemctl daemon-reload
+	systemctl enable --now apply-backlight.service
+}
+
+function uninstall() {
+	systemctl unmask 'systemd-backlight@backlight:backlight@0.service'
+	systemctl unmask 'systemd-backlight@backlight:backlight@1.service'
+	systemctl stop apply-backlight.service
+	rm -r /etc/apply-backlight
+	rm /etc/systemd/system/apply-backlight.service
+	systemctl daemon-reload
+}
+
+function usage() {
+	echo "usage> apply-backlight [COMMAND]"
+	echo "commands:"
+	echo "  help        show this usage"
+	echo "  install     install apply-backlight"
+	echo "  uninstall   uninstall apply-backlight"
+}
+
+case $1 in
+	"apply") apply ;;
+	"install") 
+		shift
+		install "$@"
+		;;
+	"uninstall") uninstall ;;
+	"help") usage ;;
+	*) usage ;;
+esac
