@@ -2,7 +2,7 @@
 My utils for SHARP Brian PW-G5200.
 
 ## Apply Backlight
-[system-backlight@.service](https://www.freedesktop.org/software/systemd/man/systemd-backlight@.service.html) is not works for me in G5200.
+[systemd-backlight@.service](https://www.freedesktop.org/software/systemd/man/systemd-backlight@.service.html) is not works for me in G5200.
 
 This is just a workaround.
 
