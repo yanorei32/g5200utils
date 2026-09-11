@@ -16,7 +16,8 @@ This is just a workaround.
 
 ```bash
 git clone https://github.com/yanorei32/g5200utils
-./apply-backlight install --main-brightness 5 --sub-brightness 0
+cd g5200utils
+sudo ./apply-backlight install --main-brightness 5 --sub-brightness 0
 ```
 
 ### How it works
